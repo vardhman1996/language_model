@@ -37,8 +37,8 @@ def read_data_wili(datafile):
     sentence_list = []
     for i, sentence in enumerate(data):
         print("Completed: {0} out of 117500".format(i))
-        sentence_list += [sentence]
-        if i != 0 and i % 50000 == 0:
+        sentence_list += [sentence.strip()]
+        if i != 0 and i % 10000 == 0:
             save_data(sentence_list)
             sentence_list = []
 
