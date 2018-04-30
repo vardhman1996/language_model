@@ -8,7 +8,7 @@ import csv
 DATA = "data/sentences.csv"
 DATA_TRAIN = "data/wili-2018/x_train.txt"
 DATA_TEST = "data/wili-2018/x_test.txt"
-MAX_SENTENCES = 20000
+MAX_SENTENCES = 100
 
 def read_data_taboeta(datafile):
     sent_df = pd.read_csv(datafile, sep="\t", encoding="utf-8", names=['num', 'lang', 'sent'])
@@ -25,7 +25,7 @@ def trim_taboeta_sentences(data_df):
         data = sentence_df['sent'].values
         random.shuffle(data)
         sentence_list += data[:MAX_SENTENCES].tolist()
-        if i != 0 and i % 20 == 0:
+        if i != 0 and i % 1000 == 0:
             save_data(sentence_list)
             sentence_list = []
 
@@ -35,13 +35,18 @@ def trim_taboeta_sentences(data_df):
 def read_data_wili(datafile):
     data = codecs.open(datafile, encoding='utf-8')
     sentence_list = []
-    for i, sentence in enumerate(data):
+    all_data = list(data)
+    print("LEN OF FILE: ", len(all_data))
+    random.shuffle(all_data)
+
+    for i, sentence in enumerate(all_data):
         print("Completed: {0} out of 117500".format(i))
         sentence_list += [sentence.strip()]
-        if i != 0 and i % 10000 == 0:
+        if i == 200:
+            break
+        if i != 0 and i % 500 == 0:
             save_data(sentence_list)
             sentence_list = []
-
     save_data(sentence_list)
 
 

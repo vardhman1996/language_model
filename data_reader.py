@@ -2,7 +2,7 @@ import os
 import io
 import numpy as np
 
-DATA_FOLDER = "../data/"
+DATA_FOLDER = "data/"
 
 class DataReader():
     def __init__(self, filename, batch_size=100):
