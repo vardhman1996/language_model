@@ -24,6 +24,7 @@ def save_sentences(sentence_char_list):
         if i != 0 and i % 10000 == 0:
             print("Saved: ", i)
             save_data(char_list)
+            char_list = []
     save_data(char_list)
 
 def save_data(final_list):
@@ -36,6 +37,7 @@ def main():
     all_sentence_chars = read_data(FINAL_SENTENCES)
     char_list = list(nltk.ngrams(all_sentence_chars, 100))
     print("Length to save: ", len(char_list))
+    # exit(0)
     save_sentences(char_list)
 
 if __name__ == "__main__":

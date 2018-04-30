@@ -8,7 +8,7 @@ import csv
 DATA = "data/sentences.csv"
 DATA_TRAIN = "data/wili-2018/x_train.txt"
 DATA_TEST = "data/wili-2018/x_test.txt"
-MAX_SENTENCES = 100
+MAX_SENTENCES = 500
 
 def read_data_taboeta(datafile):
     sent_df = pd.read_csv(datafile, sep="\t", encoding="utf-8", names=['num', 'lang', 'sent'])
@@ -42,7 +42,7 @@ def read_data_wili(datafile):
     for i, sentence in enumerate(all_data):
         print("Completed: {0} out of 117500".format(i))
         sentence_list += [sentence.strip()]
-        if i == 200:
+        if i == 2000:
             break
         if i != 0 and i % 500 == 0:
             save_data(sentence_list)
