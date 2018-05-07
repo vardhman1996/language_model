@@ -14,13 +14,16 @@ class DataReader():
         data_list = []
         for i, line in enumerate(self.file):
             line = line.strip()
-            data_list += [[c for c in line]]
-            if i == (self.batch_size - 1): break
-
-        return data_list
+            data = [c for c in line]
+            if len(data) != 100: continue
+            data_list += [data]
+            if (i + 1) % self.batch_size == 0:
+                yield data_list
+                data_list = []
 
     def format_data(self, char_list):
         batch_list = np.zeros((self.batch_size, len(char_list[0]), 32))
+        # print(batch_list.shape)
         for i, char_line in enumerate(char_list):
             data_element = np.zeros((len(char_line), 32))
             for j, c in enumerate(char_line):
@@ -30,10 +33,10 @@ class DataReader():
 
     def char_to_bit(self, c):
         unpadded_bits = [int(i) for i in format(ord(c), 'b')]
+
         return [0] * (32 - len(unpadded_bits)) + unpadded_bits
 
     def get_data(self):
-        batch_char_list = self.read_data()
-        batch_char_bits = self.format_data(batch_char_list)
-
-        return batch_char_bits
+        for batch_char_list in self.read_data():
+            batch_char_bits = self.format_data(batch_char_list)
+            yield batch_char_bits[:, :-1, :], batch_char_bits[:, -1, :]
