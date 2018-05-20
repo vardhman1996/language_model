@@ -22,21 +22,21 @@ class DataReader():
                 data_list = []
 
     def format_data(self, char_list):
-        batch_list = np.zeros((self.batch_size, len(char_list[0]), 32))
+        batch_list = np.zeros((self.batch_size, len(char_list[0])))
         # print(batch_list.shape)
         for i, char_line in enumerate(char_list):
-            data_element = np.zeros((len(char_line), 32))
+            data_element = np.zeros((len(char_line)))
             for j, c in enumerate(char_line):
                 data_element[j] = self.char_to_bit(c)
             batch_list[i] = data_element
-        return batch_list
+        return batch_list.astype('int32')
 
     def char_to_bit(self, c):
-        unpadded_bits = [int(i) for i in format(ord(c), 'b')]
+        # unpadded_bits = [int(i) for i in format(ord(c), 'b')]
 
-        return [0] * (32 - len(unpadded_bits)) + unpadded_bits
+        return ord(c)
 
     def get_data(self):
         for batch_char_list in self.read_data():
             batch_char_bits = self.format_data(batch_char_list)
-            yield batch_char_bits[:, :-1, :], batch_char_bits[:, -1, :]
+            yield batch_char_bits[:, :-1], batch_char_bits[:, -1]

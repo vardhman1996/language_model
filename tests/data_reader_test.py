@@ -8,6 +8,7 @@ class DataReaderTest(unittest.TestCase):
         batch_size = 10
         dr = DataReader(FILENAME, batch_size=batch_size)
         batch_list = dr.get_data()
+        print(batch_list.shape)
         self.assertEqual(len(batch_list), 10)
 
 
