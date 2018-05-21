@@ -37,7 +37,6 @@ def main():
     all_sentence_chars = read_data(FINAL_SENTENCES)
     char_list = list(nltk.ngrams(all_sentence_chars, 100))
     print("Length to save: ", len(char_list))
-    # exit(0)
     save_sentences(char_list)
 
 if __name__ == "__main__":

@@ -1,14 +1,14 @@
 import pandas as pd
-import codecs
 import numpy as np
 import random
 import csv
+import io
 
 
 DATA = "data/sentences.csv"
 DATA_TRAIN = "data/wili-2018/x_train.txt"
 DATA_TEST = "data/wili-2018/x_test.txt"
-MAX_SENTENCES = 500
+MAX_LENGTH = 98 #[start + sentence + stop]
 
 def read_data_taboeta(datafile):
     sent_df = pd.read_csv(datafile, sep="\t", encoding="utf-8", names=['num', 'lang', 'sent'])
@@ -19,40 +19,52 @@ def trim_taboeta_sentences(data_df):
     languages = data_df['lang'].unique()
     sentence_list = []
     for i, lang in enumerate(languages):
-
-        print("Completed: {0} out of {1}".format(i, len(languages)))
         sentence_df = data_df.loc[data_df['lang'] == lang]
         data = sentence_df['sent'].values
         random.shuffle(data)
-        sentence_list += data[:MAX_SENTENCES].tolist()
-        if i != 0 and i % 1000 == 0:
+
+        for sentence in data:
+            sentence_list += cut_off_sentence(sentence)
+        if (i + 1) % 10 == 0:
+            for s in sentence_list:
+                if (len(s)) > MAX_LENGTH:
+                    print("FUCK?")
             save_data(sentence_list)
+            print("Completed: {0} out of {1}".format(i + 1, len(languages)))
             sentence_list = []
 
-    save_data(sentence_list)
+    if len(sentence_list) != 0:
+        save_data(sentence_list)
+
+
+def cut_off_sentence(sentence):
+    if len(sentence) <= MAX_LENGTH:
+        return [sentence]
+    else:
+        return [sentence[i:i + MAX_LENGTH] for i in range(0, len(sentence), MAX_LENGTH)]
 
 
 def read_data_wili(datafile):
-    data = codecs.open(datafile, encoding='utf-8')
+    data = io.open(datafile, 'r', encoding='utf-8')
     sentence_list = []
     all_data = list(data)
     print("LEN OF FILE: ", len(all_data))
     random.shuffle(all_data)
 
     for i, sentence in enumerate(all_data):
-        print("Completed: {0} out of 117500".format(i))
-        sentence_list += [sentence.strip()]
-        if i == 2000:
-            break
-        if i != 0 and i % 500 == 0:
+        sentence_list += cut_off_sentence(sentence.strip())
+        if (i + 1) % 20000 == 0:
             save_data(sentence_list)
+            print("Completed: {0} out of {1}".format(i + 1, len(all_data)))
             sentence_list = []
-    save_data(sentence_list)
+
+    if len(sentence_list) != 0:
+        save_data(sentence_list)
 
 
 def save_data(final_list):
     df = pd.DataFrame(np.array(final_list))
-    with codecs.open('data/final_sentences.csv', 'a', 'utf-8') as file:
+    with io.open('data/final_sentences.csv', 'a', encoding='utf-8') as file:
         df.to_csv(file, sep='\t', index=False, header=None)
 
 def main():
