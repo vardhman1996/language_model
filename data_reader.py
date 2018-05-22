@@ -34,7 +34,6 @@ class DataReader:
 
     def format_data(self, char_list):
         batch_list = np.zeros((self.batch_size, MAX_TIME_STEPS + 2, 32))
-        # print(batch_list.shape)
         for i, char_line in enumerate(char_list):
             char_line = [START_CHAR] + char_line + [STOP_CHAR]
             batch_instance = np.zeros((MAX_TIME_STEPS + 2, 32))
