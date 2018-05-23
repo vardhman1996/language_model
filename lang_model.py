@@ -91,8 +91,8 @@ class LangModel(object):
             print("Epoch: {}".format(ep))
             for i, (bx, by) in enumerate(self.dr.get_data(num_batches=2000)):
                 summary, _ = self.sess.run([self.merged, self.optim], feed_dict={self.X_train : bx, self.Y_train : by})
-                train_writer.add_summary(summary, i)
                 if (i + 1) % 100 == 0:
+                    train_writer.add_summary(summary, i)
                     print("Batch Number: {}".format(i + 1))
 
         # self.save()
@@ -133,19 +133,28 @@ class LangModel(object):
                         next_c, next_h = np.zeros((1, self.h_dim)), np.zeros((1, self.h_dim))
                         y_prob = y_pred[self.dr.get_char_to_num(next_char)]
                         print(u"// added a character to the history! Probability = {0}".format(math.log(y_prob, 2)))
-                        i+=2 # check this again
+                        next_char = START_CHAR # since hitory was cleared.
+                        char_bits = np.array(data_reader.char_to_bit(next_char))
+                        char_bits = char_bits.reshape((1, 1, 32))
+                        y_pred_new, next_c, next_h = self.sess.run([self.y_hat, self.infer_state, self.infer_output],
+                                                                   feed_dict={self.X_infer: char_bits,
+                                                                              self.init_c: next_c,
+                                                                              self.init_h: next_h})
+                        y_pred = y_pred_new
+                        i += 2
                         continue
+
 
                     char_bits = np.array(data_reader.char_to_bit(next_char))
                     char_bits = char_bits.reshape((1,1,32))
-                    # get the new predictions given the current observation
-                    y_pred_new, next_c, next_h = self.sess.run([self.y_hat, self.infer_state, self.infer_output],
-                                                   feed_dict={self.X_infer: char_bits, self.init_c: next_c,
-                                                              self.init_h: next_h})
 
                     # this character's prob is found from previous time step's probability distribution
                     y_prob = y_pred.flatten()[self.dr.get_char_to_num(next_char)]
                     print("// added a character to the history! Probability = {0}".format(math.log(y_prob, 2)))
+                    # get the new predictions given the current observation
+                    y_pred_new, next_c, next_h = self.sess.run([self.y_hat, self.infer_state, self.infer_output],
+                                                   feed_dict={self.X_infer: char_bits, self.init_c: next_c,
+                                                              self.init_h: next_h})
                     y_pred = y_pred_new
                     i += 1
 
@@ -189,4 +198,4 @@ class LangModel(object):
 if __name__=='__main__':
     lm = LangModel(None, None, X_dim = 32, h_dim = 256, y_dim = 13695, max_epoch = 1, batch_size = 32)
     lm.train()
-    lm.infer()
+    # lm.infer()
