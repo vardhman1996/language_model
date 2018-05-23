@@ -13,7 +13,7 @@ START_CHAR = '\u0002' # U+0002 \x02
 CHAR_TO_NUM_DICT = 'char_to_num.pkl'
 
 MAX_LENGTH = 25
-RANDOM_WINDOW = 20
+RANDOM_WINDOW = 15
 
 class DataReader:
     def __init__(self, filename, batch_size=128):

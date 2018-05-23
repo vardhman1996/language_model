@@ -1,6 +1,7 @@
 
 import tensorflow as tf
 from data_reader import  DataReader
+import numpy as np
 
 MAX_LENGTH = 25
 NUM_SENTENCES = 14532
@@ -52,7 +53,7 @@ class LangModel(object):
         self.Y_train = tf.placeholder(tf.float32, shape=[None, self.y_dim], name='labels')
 
         self.lstm_cell = self.lstm_cell()
-        outputs, final_state = tf.nn.dynamic_rnn(
+        outputs, _ = tf.nn.dynamic_rnn(
             self.lstm_cell, inputs= self.X_train, dtype=tf.float32)
 
         output_list = tf.unstack(outputs, axis = 1)
@@ -64,12 +65,20 @@ class LangModel(object):
 
         # Nodes during Inference :
         self.X_infer = tf.placeholder(tf.float32, shape=[1, 1, self.X_dim], name='infer_inp')
-        self.initial_state = tf.placeholder(tf.float32, shape=[1, self.h_dim], name='init_state')
-        infer_outputs, self.infer_state = tf.nn.dynamic_rnn(
-            self.lstm_cell, inputs=self.X_infer, initial_state=self.initial_state, dtype=tf.float32)
+        # self.initial_state = tf.placeholder(tf.float32, shape=[2, 1, self.h_dim], name='init_state')
 
-        infer_output_list = tf.unstack(infer_outputs, axis=1)
-        infer_logits = self.fc_layer(infer_output_list[-1], reuse=True)
+        self.init_c = tf.placeholder(tf.float32, shape= [1, self.h_dim],  name='init_c')
+        self.init_h = tf.placeholder(tf.float32, shape= [1, self.h_dim],  name='init_h')
+        lstm_obj = tf.contrib.rnn.LSTMStateTuple(self.init_c, self.init_h)
+        _, (self.infer_state, self.infer_output) = tf.nn.dynamic_rnn(
+            self.lstm_cell, inputs=self.X_infer, initial_state=lstm_obj, dtype=tf.float32)
+
+
+        # infer_output_list = tf.unstack(infer_outputs, axis=1)
+        # self.infer_output = tf.reshape(infer_output, shape=[1, self.h_dim])
+
+        # infer_logits = self.fc_layer(infer_output_list[-1], reuse=True)
+        infer_logits = self.fc_layer(self.infer_output, reuse=True)
         self.y_hat = tf.nn.softmax(infer_logits)
 
         # logits = self.fc_layer(output_list[0])
@@ -93,21 +102,36 @@ class LangModel(object):
         self.sess.run(tf.global_variables_initializer())
         dr = DataReader('final_sentences_sample.csv', batch_size=32)
         for ep in range(self.max_epoch):
-            for i, (bx, by) in enumerate(dr.get_data(num_batches=(NUM_SENTENCES // self.batch_size))):
+            for i, (bx, by) in enumerate(dr.get_data(num_batches=10)):
                 self.sess.run(self.optim, feed_dict={self.X_train : bx, self.Y_train : by})
                 print(i)
 
+        self.save()
+
+
+
 
     def save(self):
+
         pass
 
     def load(self):
         pass
+
+    def infer(self):
+        next_c, next_h = np.zeros((1, self.h_dim)), np.zeros((1, self.h_dim))
+        for i, (bx, by) in enumerate(dr.get_data(num_batches=10)):
+            bx = bx[0, 0, :]
+            bx = np.reshape(bx, newshape=(1, 1, 32))
+
+            y_pred, next_c, next_h = self.sess.run([self.y_hat, self.infer_state, self.infer_output],
+                                                   feed_dict={self.X_infer: bx, self.init_c: next_c,
+                                                              self.init_h: next_h})
 
 
 
 if __name__=='__main__':
 
 
-    lm = LangModel(None, None, X_dim = 32, h_dim = 256, y_dim = 13695, max_epoch = 10, batch_size = 32)
+    lm = LangModel(None, None, X_dim = 32, h_dim = 256, y_dim = 13695, max_epoch = 1, batch_size = 32)
     lm.train()
