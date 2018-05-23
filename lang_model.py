@@ -64,9 +64,12 @@ class LangModel(object):
         output_list = tf.unstack(outputs, axis = 1)
         logits = self.fc_layer(output_list[-1])
         loss = tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=self.Y_train)
+        tf.summary.scalar('cross_entropy_loss', tf.reduce_mean(loss))
 
         self.optim = tf.train.AdamOptimizer(learning_rate=0.001).minimize(loss)
         self.saver = tf.train.Saver()
+
+        self.merged = tf.summary.merge_all()
 
         # Nodes during Inference :
         self.X_infer = tf.placeholder(tf.float32, shape=[1, 1, self.X_dim], name='infer_inp')
@@ -82,12 +85,13 @@ class LangModel(object):
         self.y_hat = tf.nn.softmax(infer_logits)
 
     def train(self):
-
+        train_writer = tf.summary.FileWriter('train_logs/', self.sess.graph)
         self.sess.run(tf.global_variables_initializer())
         for ep in range(self.max_epoch):
             print("Epoch: {}".format(ep))
             for i, (bx, by) in enumerate(self.dr.get_data(num_batches=2000)):
-                self.sess.run(self.optim, feed_dict={self.X_train : bx, self.Y_train : by})
+                summary, _ = self.sess.run([self.merged, self.optim], feed_dict={self.X_train : bx, self.Y_train : by})
+                train_writer.add_summary(summary, i)
                 if (i + 1) % 100 == 0:
                     print("Batch Number: {}".format(i + 1))
 

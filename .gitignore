@@ -6,6 +6,8 @@ __pycache__/
 .idea/
 .DS_Store
 
+train_logs/
+
 # data and model folders
 data
 
