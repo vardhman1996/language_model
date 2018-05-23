@@ -7,10 +7,11 @@ import tensorflow as tf
 DATA_FOLDER = "data/"
 NUM_SENTENCES = 7560180 # total number of sentences collected
 # [START_CHAR + sentence + STOP_CHAR]
-MAX_TIME_STEPS = 98
+MAX_TIME_STEPS = 38
 STOP_CHAR = '\u0003' # U+0003 \x03
 START_CHAR = '\u0002' # U+0002 \x02
 CHAR_TO_NUM_DICT = 'char_to_num.pkl'
+NUM_TO_CHAR_DICT = 'num_to_char.pkl'
 
 MAX_LENGTH = 25
 RANDOM_WINDOW = 15
@@ -22,6 +23,13 @@ class DataReader:
         self.batch_size = batch_size
         self.stop_char_bits = self.char_to_bit(STOP_CHAR)
         self.char_to_num = pkl.load(open(os.path.join(DATA_FOLDER, CHAR_TO_NUM_DICT), 'rb'))
+        self.num_to_char = pkl.load(open(os.path.join(DATA_FOLDER, NUM_TO_CHAR_DICT), 'rb'))
+
+    def get_char_to_num(self, char):
+        return self.char_to_num[char]
+
+    def get_num_to_char(self, num):
+        return self.num_to_char[num]
 
     def read_data(self):
         data_list = []
@@ -41,11 +49,10 @@ class DataReader:
 
     def format_data(self, char_list):
         batch_list_x = np.zeros((self.batch_size, MAX_LENGTH, 32))
-        batch_list_y = np.zeros((self.batch_size,  1))
+        batch_list_y = np.zeros((self.batch_size,))
         for i, char_line in enumerate(char_list):
             char_line = [START_CHAR] + char_line + [STOP_CHAR]
             batch_instance_x = np.zeros((MAX_LENGTH, 32))
-            batch_instance_y = None
 
             slice_index = np.random.randint(0, RANDOM_WINDOW)
             sliced_char_line = char_line[slice_index:slice_index+MAX_LENGTH]
@@ -82,13 +89,13 @@ class DataReader:
                 batch_char_list = self.read_data()
 
             batch_x, batch_y = self.format_data(batch_char_list)
-
             batch_y = tf.keras.utils.to_categorical(batch_y, num_classes=len(self.char_to_num))
+
             yield batch_x, batch_y
 
 
 
 # EXAMPLE USAGE
-# dr = DataReader('final_sentences.csv', batch_size=128)
-# for i, (batch_x, batch_y)  in enumerate(dr.get_data(num_batches=100000)):
+# dr = DataReader('final_sentences.csv', batch_size=1024)
+# for i, (batch_x, batch_y)  in enumerate(dr.get_data(num_batches=11031)):
 #     print(i, batch_x.shape, batch_y.shape)

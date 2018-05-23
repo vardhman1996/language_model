@@ -109,8 +109,6 @@ class LangModel(object):
         self.save()
 
 
-
-
     def save(self):
 
         pass

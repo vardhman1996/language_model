@@ -8,7 +8,8 @@ import io
 DATA = "data/sentences.csv"
 DATA_TRAIN = "data/wili-2018/x_train.txt"
 DATA_TEST = "data/wili-2018/x_test.txt"
-MAX_LENGTH = 98 #[start + sentence + stop]
+MAX_LENGTH = 38 #[start + sentence + stop]
+OUTPUT = 'data/final_sentences.csv'
 
 def read_data_taboeta(datafile):
     sent_df = pd.read_csv(datafile, sep="\t", encoding="utf-8", names=['num', 'lang', 'sent'])
@@ -29,12 +30,12 @@ def trim_taboeta_sentences(data_df):
             for s in sentence_list:
                 if (len(s)) > MAX_LENGTH:
                     print("FUCK?")
-            save_data(sentence_list)
+            save_data(sentence_list, 'a')
             print("Completed: {0} out of {1}".format(i + 1, len(languages)))
             sentence_list = []
 
     if len(sentence_list) != 0:
-        save_data(sentence_list)
+        save_data(sentence_list, 'a')
 
 
 def cut_off_sentence(sentence):
@@ -54,23 +55,31 @@ def read_data_wili(datafile):
     for i, sentence in enumerate(all_data):
         sentence_list += cut_off_sentence(sentence.strip())
         if (i + 1) % 20000 == 0:
-            save_data(sentence_list)
+            save_data(sentence_list, 'a')
             print("Completed: {0} out of {1}".format(i + 1, len(all_data)))
             sentence_list = []
 
     if len(sentence_list) != 0:
-        save_data(sentence_list)
+        save_data(sentence_list, 'a')
 
 
-def save_data(final_list):
+def randomize_data(datafilepath):
+    sent_df = pd.read_csv(datafilepath, sep='\t', encoding="utf-8", names=['sent'])
+    sentences = sent_df['sent'].values
+    np.random.shuffle(sentences)
+    save_data(np.asarray(sentences), 'w')
+
+def save_data(final_list, mode):
     df = pd.DataFrame(np.array(final_list))
-    with io.open('data/final_sentences.csv', 'a', encoding='utf-8') as file:
+    with io.open(OUTPUT, mode, encoding='utf-8') as file:
         df.to_csv(file, sep='\t', index=False, header=None)
 
 def main():
-    read_data_taboeta(DATA)
-    read_data_wili(DATA_TRAIN)
-    read_data_wili(DATA_TEST)
+    # read_data_taboeta(DATA)
+    # read_data_wili(DATA_TRAIN)
+    # read_data_wili(DATA_TEST)
+
+    randomize_data(OUTPUT)
 
 
 if __name__ == "__main__":
