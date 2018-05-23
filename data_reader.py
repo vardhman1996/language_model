@@ -16,12 +16,17 @@ NUM_TO_CHAR_DICT = 'num_to_char.pkl'
 MAX_LENGTH = 25
 RANDOM_WINDOW = 15
 
+
+def char_to_bit(c):
+    unpadded_bits = [int(i) for i in format(ord(c), 'b')]
+    return [0] * (32 - len(unpadded_bits)) + unpadded_bits
+
 class DataReader:
     def __init__(self, filename, batch_size=128):
         self.data_filename = os.path.join(DATA_FOLDER, filename)
         self.file = io.open(self.data_filename, 'r', encoding='utf-8')
         self.batch_size = batch_size
-        self.stop_char_bits = self.char_to_bit(STOP_CHAR)
+        self.stop_char_bits = char_to_bit(STOP_CHAR)
         self.char_to_num = pkl.load(open(os.path.join(DATA_FOLDER, CHAR_TO_NUM_DICT), 'rb'))
         self.num_to_char = pkl.load(open(os.path.join(DATA_FOLDER, NUM_TO_CHAR_DICT), 'rb'))
 
@@ -66,7 +71,7 @@ class DataReader:
                     batch_instance_y = self.char_to_num[char_line[slice_index + MAX_LENGTH]]
 
             for j, c in enumerate(sliced_char_line):
-                batch_instance_x[j] = self.char_to_bit(c)
+                batch_instance_x[j] = char_to_bit(c)
 
             batch_instance_x[len(sliced_char_line):] = self.stop_char_bits
 
@@ -75,11 +80,6 @@ class DataReader:
             batch_list_y[i] = batch_instance_y
 
         return batch_list_x, batch_list_y
-
-
-    def char_to_bit(self, c):
-        unpadded_bits = [int(i) for i in format(ord(c), 'b')]
-        return [0] * (32 - len(unpadded_bits)) + unpadded_bits
 
     def get_data(self, num_batches=60000):
         for batch in range(num_batches):
@@ -92,7 +92,6 @@ class DataReader:
             batch_y = tf.keras.utils.to_categorical(batch_y, num_classes=len(self.char_to_num))
 
             yield batch_x, batch_y
-
 
 
 # EXAMPLE USAGE
