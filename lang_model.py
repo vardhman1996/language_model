@@ -84,12 +84,13 @@ class LangModel(object):
     def train(self, train_id):
         train_writer = tf.summary.FileWriter('train_logs/{}'.format(train_id), self.sess.graph)
         self.sess.run(tf.global_variables_initializer())
+        batches = 80000
         for ep in range(self.max_epoch):
             print("Epoch: {}".format(ep))
-            for i, (bx, by) in enumerate(self.dr.get_data(num_batches=88000)):
+            for i, (bx, by) in enumerate(self.dr.get_data(num_batches=batches)):
                 summary, _ = self.sess.run([self.merged, self.optim], feed_dict={self.X_train : bx, self.Y_train : by})
                 if (i + 1) % 1000 == 0:
-                    train_writer.add_summary(summary, i)
+                    train_writer.add_summary(summary, ep * batches + i)
                     print("Batch Number: {}".format(i + 1))
 
         # self.save()
