@@ -86,7 +86,7 @@ class LangModel(object):
         self.sess.run(tf.global_variables_initializer())
         for ep in range(self.max_epoch):
             print("Epoch: {}".format(ep))
-            for i, (bx, by) in enumerate(self.dr.get_data(num_batches=2000)):
+            for i, (bx, by) in enumerate(self.dr.get_data(num_batches=88000)):
                 summary, _ = self.sess.run([self.merged, self.optim], feed_dict={self.X_train : bx, self.Y_train : by})
                 if (i + 1) % 1000 == 0:
                     train_writer.add_summary(summary, i)
@@ -196,7 +196,7 @@ class LangModel(object):
             break
 
 if __name__=='__main__':
-    lm = LangModel(X_dim = 32, h_dim = 256, max_epoch = 1, batch_size = 32)
+    lm = LangModel(X_dim = 128, h_dim = 256, max_epoch = 5, batch_size = 128)
     print("enter a run id: ")
     run_id = str(input())
     lm.train(run_id)
