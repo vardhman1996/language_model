@@ -197,8 +197,8 @@ class LangModel(object):
             break
 
 if __name__=='__main__':
-    lm = LangModel(X_dim = 32, h_dim = 256, max_epoch = 5, batch_size = 128)
+    lm = LangModel(X_dim = 32, h_dim = 256, max_epoch = 17, batch_size = 128)
     print("enter a run id: ")
     run_id = str(input())
     lm.train(run_id)
-    # lm.infer()
+    lm.infer()
