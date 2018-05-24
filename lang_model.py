@@ -15,7 +15,7 @@ V = 136755
 class LangModel(object):
 
     def __init__(self, X_dim = 32, h_dim = 256, max_epoch = 10, batch_size = 32):
-        self.dr = DataReader('simple_test.csv', batch_size=batch_size)
+        self.dr = DataReader('final_sentences.csv', batch_size=batch_size)
         self.max_epoch = max_epoch
         self.X_dim = X_dim
         self.h_dim = h_dim
@@ -81,14 +81,14 @@ class LangModel(object):
         infer_logits = self.fc_layer(self.infer_output, reuse=True)
         self.y_hat = tf.nn.softmax(infer_logits)
 
-    def train(self):
-        train_writer = tf.summary.FileWriter('train_logs/', self.sess.graph)
+    def train(self, train_id):
+        train_writer = tf.summary.FileWriter('train_logs/{}'.format(train_id), self.sess.graph)
         self.sess.run(tf.global_variables_initializer())
         for ep in range(self.max_epoch):
             print("Epoch: {}".format(ep))
             for i, (bx, by) in enumerate(self.dr.get_data(num_batches=2000)):
                 summary, _ = self.sess.run([self.merged, self.optim], feed_dict={self.X_train : bx, self.Y_train : by})
-                if (i + 1) % 100 == 0:
+                if (i + 1) % 1000 == 0:
                     train_writer.add_summary(summary, i)
                     print("Batch Number: {}".format(i + 1))
 
@@ -96,7 +96,6 @@ class LangModel(object):
 
 
     def save(self):
-
         pass
 
     def load(self):
@@ -198,5 +197,7 @@ class LangModel(object):
 
 if __name__=='__main__':
     lm = LangModel(X_dim = 32, h_dim = 256, max_epoch = 1, batch_size = 32)
-    lm.train()
+    print("enter a run id: ")
+    run_id = str(input())
+    lm.train(run_id)
     lm.infer()
