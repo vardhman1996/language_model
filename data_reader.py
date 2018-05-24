@@ -89,7 +89,7 @@ class DataReader:
                 batch_char_list = self.read_data()
 
             batch_x, batch_y = self.format_data(batch_char_list)
-            batch_y = tf.keras.utils.to_categorical(batch_y, num_classes=len(self.char_to_num))
+            batch_y = tf.keras.utils.to_categorical(batch_y, num_classes=(len(self.char_to_num) + 1))
 
             yield batch_x, batch_y
 

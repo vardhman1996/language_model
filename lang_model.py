@@ -10,24 +10,21 @@ NUM_SENTENCES = 14532
 UNK_CHAR = '\u0001'
 STOP_CHAR = '\u0003'
 START_CHAR = '\u0002'
-
+V = 136755
 
 class LangModel(object):
 
-    def __init__(self, fw_dic, bk_dic, X_dim = 32, h_dim = 256, y_dim = 13695, max_epoch = 10, batch_size = 32):
-
+    def __init__(self, X_dim = 32, h_dim = 256, max_epoch = 10, batch_size = 32):
+        self.dr = DataReader('simple_test.csv', batch_size=batch_size)
         self.max_epoch = max_epoch
         self.X_dim = X_dim
         self.h_dim = h_dim
-        self.y_dim = y_dim
+        self.y_dim = len(self.dr.char_to_num) + 1
         self.batch_size = batch_size
-        self.fw_indx_lookup = fw_dic
-        self.rev_indx_lookup = bk_dic
 
         self.build_model()
         self.sess = tf.Session()
 
-        self.dr = DataReader('final_sentences_sample.csv', batch_size=32)
 
     def lstm_cell(self, reuse = False):
 
@@ -108,7 +105,7 @@ class LangModel(object):
     def infer(self):
         # for data in sys.stdin:
         while True:
-            user_input = 'ohoaonodolggggggggggg'
+            user_input = 'ohoeololqpggggggggggg'
             user_input_chars = [c for c in user_input]
             i = 0
 
@@ -123,7 +120,7 @@ class LangModel(object):
                                                    feed_dict={self.X_infer: char_bits, self.init_c: next_c,
                                                               self.init_h: next_h})
 
-            char_indices = np.arange(len(self.dr.char_to_num))
+            char_indices = np.arange(len(self.dr.char_to_num) + 1)
             while i < len(user_input_chars):
                 if user_input_chars[i] == 'o': # observation
                     next_char = user_input_chars[i + 1]
@@ -161,23 +158,27 @@ class LangModel(object):
                 elif user_input_chars[i] == 'q':
                     next_char = user_input_chars[i + 1]
                     # use the current probability distribution to get the query prob
+                    if next_char not in self.dr.char_to_num:
+                        unk_prob = y_pred.flatten()[len(self.dr.char_to_num)]
+                        y_prob = unk_prob / (V - len(self.dr.char_to_num))
+                        print(math.log(y_prob, 2))
+                        i += 2
+                        continue
+
                     y_prob = y_pred.flatten()[self.dr.get_char_to_num(next_char)]
                     print(math.log(y_prob, 2))
                     i += 1
-
                 elif user_input_chars[i] == 'g':
                     # use the current probability distribution to generate a char
                     char_index = np.random.choice(char_indices, 1, p=y_pred.flatten())
+                    while char_index == len(self.dr.char_to_num):
+                        char_index = np.random.choice(char_indices, 1, p=y_pred.flatten())
+
                     gen_char = self.dr.get_num_to_char(char_index[0])
 
                     # clear history if generates a stop char.
                     if gen_char == STOP_CHAR:
                         next_c, next_h = np.zeros((1, self.h_dim)), np.zeros((1, self.h_dim))
-
-
-                    # while not is_valid_bmp(ord(gen_char)):
-                    #     char_index = np.random.choice(char_indices, 1, p=y_pred)
-                    #     gen_char = self.dr.get_num_to_char(char_index)
 
                     # if generated STOP then next_char is START
                     next_char = gen_char if gen_char != STOP_CHAR else START_CHAR
@@ -196,6 +197,6 @@ class LangModel(object):
             break
 
 if __name__=='__main__':
-    lm = LangModel(None, None, X_dim = 32, h_dim = 256, y_dim = 13695, max_epoch = 1, batch_size = 32)
+    lm = LangModel(X_dim = 32, h_dim = 256, max_epoch = 1, batch_size = 32)
     lm.train()
-    # lm.infer()
+    lm.infer()

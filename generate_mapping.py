@@ -11,7 +11,6 @@ DATA_TRAIN = "data/wili-2018/x_train.txt"
 DATA_TEST = "data/wili-2018/x_test.txt"
 DATA_PATH = 'data'
 STOP_CHAR = '\u0003' # U+0003 \x03
-UNK_CHAR = '\u0001' # UNK char
 
 
 def read_data_taboeta(datafile):
@@ -85,7 +84,6 @@ def main():
     universal_char_set = universal_char_set | read_data_wili(DATA_TEST)
 
     universal_char_set.add(STOP_CHAR)
-    universal_char_set.add(UNK_CHAR)
 
     print("Num unique chars: {}".format(len(universal_char_set)))
 
