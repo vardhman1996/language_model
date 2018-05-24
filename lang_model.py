@@ -14,7 +14,7 @@ V = 136755
 
 class LangModel(object):
 
-    def __init__(self, X_dim = 32, h_dim = 256, max_epoch = 10, batch_size = 32):
+    def __init__(self, X_dim=32, h_dim=256, max_epoch=10, batch_size=32):
         self.dr = DataReader('final_sentences.csv', batch_size=batch_size)
         self.max_epoch = max_epoch
         self.X_dim = X_dim
@@ -26,7 +26,7 @@ class LangModel(object):
         self.sess = tf.Session()
 
 
-    def lstm_cell(self, reuse = False):
+    def lstm_cell(self, reuse=False):
 
         with tf.variable_scope('lstm') as vs:
             if reuse:
@@ -35,7 +35,7 @@ class LangModel(object):
             return tf.contrib.rnn.BasicLSTMCell(self.h_dim)
 
 
-    def fc_layer(self, inp, reuse = False):
+    def fc_layer(self, inp, reuse=False):
 
         with tf.variable_scope('fc') as vs:
             if reuse:
@@ -197,7 +197,7 @@ class LangModel(object):
             break
 
 if __name__=='__main__':
-    lm = LangModel(X_dim = 32, h_dim = 256, max_epoch = 17, batch_size = 128)
+    lm = LangModel(X_dim=32, h_dim=256, max_epoch=17, batch_size=128)
     print("enter a run id: ")
     run_id = str(input())
     lm.train(run_id)
