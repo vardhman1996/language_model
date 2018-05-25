@@ -14,7 +14,7 @@ START_CHAR = '\u0002'
 V = 136755
 
 class LangModel(object):
-    def __init__(self, X_dim = 32, h_dim = 256, max_epoch = 10, batch_size = 32):
+    def __init__(self, X_dim=32, h_dim=256, max_epoch=10, batch_size=32):
         self.dr = DataReader('final_sentences.csv', batch_size=batch_size)
         self.max_epoch = max_epoch
         self.X_dim = X_dim
@@ -26,7 +26,7 @@ class LangModel(object):
         self.sess = tf.Session()
 
 
-    def lstm_cell(self, reuse = False):
+    def lstm_cell(self, reuse=False):
 
         with tf.variable_scope('lstm') as vs:
             if reuse:
@@ -35,7 +35,7 @@ class LangModel(object):
             return tf.contrib.rnn.BasicLSTMCell(self.h_dim)
 
 
-    def fc_layer(self, inp, reuse = False):
+    def fc_layer(self, inp, reuse=False):
 
         with tf.variable_scope('fc') as vs:
             if reuse:
@@ -84,26 +84,27 @@ class LangModel(object):
     def train(self, train_id):
         train_writer = tf.summary.FileWriter('train_logs/{}'.format(train_id), self.sess.graph)
         self.sess.run(tf.global_variables_initializer())
+        batches = 80000
         for ep in range(self.max_epoch):
             print("Epoch: {}".format(ep))
-            for i, (bx, by) in enumerate(self.dr.get_data(num_batches=50)):
+            for i, (bx, by) in enumerate(self.dr.get_data(num_batches=batches)):
                 summary, _ = self.sess.run([self.merged, self.optim], feed_dict={self.X_train : bx, self.Y_train : by})
-                if (i + 1) % 50 == 0:
-                    train_writer.add_summary(summary, i)
+                if (i + 1) % 1000 == 0:
+                    train_writer.add_summary(summary, ep * batches + i)
                     print("Batch Number: {}".format(i + 1))
             if (ep + 1) % 10 == 0 or (ep + 1) == self.max_epoch:
-                self.save(ep + 1)
+                self.save(ep + 1, train_id)
 
-    def save(self, ep):
+    def save(self, ep, train_id):
         checkpoint_dir = 'checkpoint_dir/lstm_h' + str(self.h_dim) + '_b' + str(self.batch_size) + '_T' + str(
-            MAX_LENGTH)
+            MAX_LENGTH) + "_" + train_id
         if not os.path.exists(checkpoint_dir):
             os.makedirs(checkpoint_dir)
         self.saver.save(self.sess, os.path.join(checkpoint_dir, 'model'), global_step = ep)
         print('Saved model in Epoch {}'.format(ep))
 
-    def load(self, ep):
-        checkpoint_dir = 'checkpoint_dir/lstm_h'+str(self.h_dim)+'_b'+str(self.batch_size)+'_T'+str(MAX_LENGTH)
+    def load(self, ep, train_id):
+        checkpoint_dir = 'checkpoint_dir/lstm_h'+str(self.h_dim)+'_b'+str(self.batch_size)+'_T'+str(MAX_LENGTH) + "_" + train_id
         self.saver.restore(self.sess, os.path.join(checkpoint_dir, 'model-{}'.format(ep)))
         print('Restored model weights from Epoch {}'.format(ep))
 
@@ -199,9 +200,8 @@ class LangModel(object):
             break
 
 if __name__=='__main__':
-    lm = LangModel(X_dim = 32, h_dim = 256, max_epoch = 20, batch_size = 32)
-    print("enter a run id: ")
-    run_id = str(input())
+    lm = LangModel(X_dim=32, h_dim=256, max_epoch=20, batch_size=128)
+    run_id = str(input("enter a run id: "))
     lm.train(run_id)
-    # lm.load(20)
+    # lm.load(10, run_id)
     # lm.infer()
