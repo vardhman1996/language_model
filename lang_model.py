@@ -4,6 +4,7 @@ from data_reader import DataReader
 import numpy as np
 import sys
 import math
+import os
 
 MAX_LENGTH = 25
 NUM_SENTENCES = 14532
@@ -64,7 +65,7 @@ class LangModel(object):
         tf.summary.scalar('cross_entropy_loss', tf.reduce_mean(loss))
 
         self.optim = tf.train.AdamOptimizer(learning_rate=0.001).minimize(loss)
-        self.saver = tf.train.Saver()
+        self.saver = tf.train.Saver(max_to_keep = 4)
 
         self.merged = tf.summary.merge_all()
 
@@ -91,15 +92,22 @@ class LangModel(object):
                 if (i + 1) % 1000 == 0:
                     train_writer.add_summary(summary, i)
                     print("Batch Number: {}".format(i + 1))
+            if (ep+1)% 10 == 0 or (ep+1) == self.max_epoch:
+                    self.save(ep+1)
 
-        # self.save()
 
+    def save(self, ep):
+        checkpoint_dir = 'checkpoint_dir/lstm_h' + str(self.h_dim) + '_b' + str(self.batch_size) + '_T' + str(
+            MAX_LENGTH)
+        if not os.path.exists(checkpoint_dir):
+            os.makedirs(checkpoint_dir)
+        self.saver.save(self.sess, os.path.join(checkpoint_dir, 'model'), global_step = ep)
+        print('Saved model in Epoch {}'.format(ep))
 
-    def save(self):
-        pass
-
-    def load(self):
-        pass
+    def load(self, ep):
+        checkpoint_dir = 'checkpoint_dir/lstm_h'+str(self.h_dim)+'_b'+str(self.batch_size)+'_T'+str(MAX_LENGTH)
+        self.saver.restore(self.sess, os.path.join(checkpoint_dir, 'model-{}'.format(ep)))
+        print('Restored model weights from Epoch {}'.format(ep))
 
     def infer(self):
         # for data in sys.stdin:
