@@ -14,7 +14,6 @@ START_CHAR = '\u0002'
 V = 136755
 
 class LangModel(object):
-
     def __init__(self, X_dim = 32, h_dim = 256, max_epoch = 10, batch_size = 32):
         self.dr = DataReader('final_sentences.csv', batch_size=batch_size)
         self.max_epoch = max_epoch
@@ -87,14 +86,13 @@ class LangModel(object):
         self.sess.run(tf.global_variables_initializer())
         for ep in range(self.max_epoch):
             print("Epoch: {}".format(ep))
-            for i, (bx, by) in enumerate(self.dr.get_data(num_batches=2000)):
+            for i, (bx, by) in enumerate(self.dr.get_data(num_batches=50)):
                 summary, _ = self.sess.run([self.merged, self.optim], feed_dict={self.X_train : bx, self.Y_train : by})
-                if (i + 1) % 1000 == 0:
+                if (i + 1) % 50 == 0:
                     train_writer.add_summary(summary, i)
                     print("Batch Number: {}".format(i + 1))
-            if (ep+1)% 10 == 0 or (ep+1) == self.max_epoch:
-                    self.save(ep+1)
-
+            if (ep + 1) % 10 == 0 or (ep + 1) == self.max_epoch:
+                self.save(ep + 1)
 
     def save(self, ep):
         checkpoint_dir = 'checkpoint_dir/lstm_h' + str(self.h_dim) + '_b' + str(self.batch_size) + '_T' + str(
@@ -115,7 +113,6 @@ class LangModel(object):
             user_input = 'ohoeololqpggggggggggg'
             user_input_chars = [c for c in user_input]
             i = 0
-
 
             next_c, next_h = np.zeros((1, self.h_dim)), np.zeros((1, self.h_dim))
             first_char = START_CHAR # first is always start
@@ -148,7 +145,6 @@ class LangModel(object):
                         i += 2
                         continue
 
-
                     char_bits = np.array(data_reader.char_to_bit(next_char))
                     char_bits = char_bits.reshape((1,1,32))
 
@@ -161,7 +157,6 @@ class LangModel(object):
                                                               self.init_h: next_h})
                     y_pred = y_pred_new
                     i += 1
-
                 elif user_input_chars[i] == 'q':
                     next_char = user_input_chars[i + 1]
                     # use the current probability distribution to get the query prob
@@ -204,8 +199,9 @@ class LangModel(object):
             break
 
 if __name__=='__main__':
-    lm = LangModel(X_dim = 32, h_dim = 256, max_epoch = 1, batch_size = 32)
+    lm = LangModel(X_dim = 32, h_dim = 256, max_epoch = 20, batch_size = 32)
     print("enter a run id: ")
     run_id = str(input())
     lm.train(run_id)
-    lm.infer()
+    # lm.load(20)
+    # lm.infer()
