@@ -5,6 +5,7 @@ import numpy as np
 import sys
 import math
 import os
+import time
 
 MAX_LENGTH = 25
 NUM_SENTENCES = 14532
@@ -12,6 +13,7 @@ UNK_CHAR = '\u0001'
 STOP_CHAR = '\u0003'
 START_CHAR = '\u0002'
 V = 136755
+
 
 class LangModel(object):
     def __init__(self, X_dim=32, h_dim=256, max_epoch=10, batch_size=32):
@@ -200,8 +202,10 @@ class LangModel(object):
             break
 
 if __name__=='__main__':
+    start = time.time()
     lm = LangModel(X_dim=32, h_dim=256, max_epoch=20, batch_size=128)
     run_id = str(input("enter a run id: "))
     lm.train(run_id)
+    print("Model training took: ", time.time() - start)
     # lm.load(10, run_id)
     # lm.infer()
