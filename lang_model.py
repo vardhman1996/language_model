@@ -94,7 +94,7 @@ class LangModel(object):
                 if (i + 1) % 1000 == 0:
                     train_writer.add_summary(summary, ep * batches + i)
                     print("Batch Number: {}".format(i + 1))
-            if (ep + 1) % 10 == 0 or (ep + 1) == self.max_epoch:
+            if (ep + 1) % 5 == 0 or (ep + 1) == self.max_epoch:
                 self.save(ep + 1, train_id)
 
     def save(self, ep, train_id):
@@ -113,7 +113,7 @@ class LangModel(object):
     def infer(self):
         # for data in sys.stdin:
         while True:
-            user_input = 'ohoeololqpggggggggggg'
+            user_input = 'oसoकेoचीggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg'
             user_input_chars = [c for c in user_input]
             i = 0
 
@@ -129,7 +129,7 @@ class LangModel(object):
 
             char_indices = np.arange(len(self.dr.char_to_num) + 1)
             while i < len(user_input_chars):
-                if user_input_chars[i] == 'o': # observation
+                if user_input_chars[i] == 'o':  # observation
                     next_char = user_input_chars[i + 1]
 
                     if next_char == STOP_CHAR:
@@ -137,7 +137,7 @@ class LangModel(object):
                         next_c, next_h = np.zeros((1, self.h_dim)), np.zeros((1, self.h_dim))
                         y_prob = y_pred[self.dr.get_char_to_num(next_char)]
                         print(u"// added a character to the history! Probability = {0}".format(math.log(y_prob, 2)))
-                        next_char = START_CHAR # since hitory was cleared.
+                        next_char = START_CHAR # since history was cleared.
                         char_bits = np.array(data_reader.char_to_bit(next_char))
                         char_bits = char_bits.reshape((1, 1, 32))
                         y_pred_new, next_c, next_h = self.sess.run([self.y_hat, self.infer_state, self.infer_output],
@@ -207,5 +207,5 @@ if __name__=='__main__':
     run_id = str(input("enter a run id: "))
     lm.train(run_id)
     print("Model training took: ", time.time() - start)
-    # lm.load(10, run_id)
-    # lm.infer()
+    lm.load(10, run_id)
+    lm.infer()
