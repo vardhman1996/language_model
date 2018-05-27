@@ -92,7 +92,7 @@ class LangModel(object):
                 if (i + 1) % 1000 == 0:
                     train_writer.add_summary(summary, ep * batches + i)
                     print("Batch Number: {}".format(i + 1))
-            if (ep + 1) % 5 == 0 or (ep + 1) == self.max_epoch:
+            if (ep + 1) % 2 == 0 or (ep + 1) == self.max_epoch:
                 self.save(ep + 1, train_id)
 
     def save(self, ep, train_id):
@@ -202,6 +202,6 @@ class LangModel(object):
 if __name__=='__main__':
     lm = LangModel(X_dim=32, h_dim=256, max_epoch=20, batch_size=128)
     run_id = str(input("enter a run id: "))
-    # lm.train(run_id)
-    lm.load(10, run_id)
-    lm.infer()
+    lm.train(run_id)
+    # lm.load(10, run_id)
+    # lm.infer()
