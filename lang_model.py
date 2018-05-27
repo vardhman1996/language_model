@@ -26,6 +26,7 @@ class LangModel(object):
 
         self.build_model()
         self.sess = tf.Session()
+        self.madedir = False
 
 
     def lstm_cell(self, reuse=False):
@@ -100,8 +101,10 @@ class LangModel(object):
     def save(self, ep, train_id):
         checkpoint_dir = 'checkpoint_dir/lstm_h' + str(self.h_dim) + '_b' + str(self.batch_size) + '_T' + str(
             MAX_LENGTH) + "_" + train_id
-        if not os.path.exists(checkpoint_dir):
+        if not self.madedir:
             os.makedirs(checkpoint_dir)
+            self.madedir = True
+
         self.saver.save(self.sess, os.path.join(checkpoint_dir, 'model'), global_step = ep)
         print('Saved model in Epoch {}'.format(ep))
 
