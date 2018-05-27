@@ -10,6 +10,9 @@ DATA_TRAIN = "data/wili-2018/x_train.txt"
 DATA_TEST = "data/wili-2018/x_test.txt"
 MAX_LENGTH = 38 #[start + sentence + stop]
 OUTPUT = 'data/final_sentences.csv'
+SENTENCE_LENGTH_THRESH = 10
+
+
 
 def read_data_taboeta(datafile):
     sent_df = pd.read_csv(datafile, sep="\t", encoding="utf-8", names=['num', 'lang', 'sent'])
@@ -25,10 +28,12 @@ def trim_taboeta_sentences(data_df):
         random.shuffle(data)
 
         for sentence in data:
+            if len(sentence) < SENTENCE_LENGTH_THRESH:
+                continue
             sentence_list += cut_off_sentence(sentence)
-        if (i + 1) % 10 == 0:
+        if (i + 1) % 1 == 0:
             for s in sentence_list:
-                if (len(s)) > MAX_LENGTH:
+                if (len(s)) < MAX_LENGTH:
                     print("FUCK?")
             save_data(sentence_list, 'a')
             print("Completed: {0} out of {1}".format(i + 1, len(languages)))
@@ -40,9 +45,21 @@ def trim_taboeta_sentences(data_df):
 
 def cut_off_sentence(sentence):
     if len(sentence) <= MAX_LENGTH:
-        return [sentence]
+        new_sentence = sentence
+        while len(new_sentence) < MAX_LENGTH:
+            new_sentence += ' '
+            for i in range(len(sentence)):
+                if len(new_sentence) >= MAX_LENGTH: break
+                new_sentence += sentence[i]
+        return [new_sentence]
     else:
-        return [sentence[i:i + MAX_LENGTH] for i in range(0, len(sentence), MAX_LENGTH)]
+        sentence_chunks = [sentence[i:i + MAX_LENGTH] for i in range(0, len(sentence), MAX_LENGTH)]
+        ret_sentences = []
+        for sent in sentence_chunks:
+            if len(sentence) < SENTENCE_LENGTH_THRESH:
+                continue
+            ret_sentences += cut_off_sentence(sent)
+        return ret_sentences
 
 
 def read_data_wili(datafile):
@@ -53,7 +70,10 @@ def read_data_wili(datafile):
     random.shuffle(all_data)
 
     for i, sentence in enumerate(all_data):
-        sentence_list += cut_off_sentence(sentence.strip())
+        sentence = sentence.strip()
+        if len(sentence) < SENTENCE_LENGTH_THRESH:
+            continue
+        sentence_list += cut_off_sentence(sentence)
         if (i + 1) % 20000 == 0:
             save_data(sentence_list, 'a')
             print("Completed: {0} out of {1}".format(i + 1, len(all_data)))
@@ -66,8 +86,18 @@ def read_data_wili(datafile):
 def randomize_data(datafilepath):
     sent_df = pd.read_csv(datafilepath, sep='\t', encoding="utf-8", names=['sent'])
     sentences = sent_df['sent'].values
-    np.random.shuffle(sentences)
-    save_data(np.asarray(sentences), 'w')
+
+    arr = np.zeros(40)
+    temp_sentences = []
+    for sent in sentences:
+        if len(sent) < 38:
+            continue
+        temp_sentences += [sent]
+        arr[len(sent) - 1] += 1
+
+    print(arr)
+    np.random.shuffle(np.array(temp_sentences))
+    save_data(np.asarray(temp_sentences), 'w')
 
 def save_data(final_list, mode):
     df = pd.DataFrame(np.array(final_list))

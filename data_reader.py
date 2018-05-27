@@ -47,6 +47,8 @@ class DataReader:
             line = line.replace('""', '"')
 
             data = [c for c in line]
+            if len(data) < MAX_TIME_STEPS:
+                continue
             data_list += [data]
             num_point += 1
             if num_point % self.batch_size == 0:
@@ -60,15 +62,9 @@ class DataReader:
             batch_instance_x = np.zeros((MAX_LENGTH, 32))
 
             slice_index = np.random.randint(0, RANDOM_WINDOW)
-            sliced_char_line = char_line[slice_index:slice_index+MAX_LENGTH]
+            sliced_char_line = char_line[slice_index:slice_index + MAX_LENGTH]
 
-            if len(sliced_char_line) < MAX_LENGTH:
-                batch_instance_y = self.char_to_num[STOP_CHAR]
-            else:
-                if len(char_line) <= slice_index + MAX_LENGTH:
-                    batch_instance_y = self.char_to_num[STOP_CHAR]
-                else:
-                    batch_instance_y = self.char_to_num[char_line[slice_index + MAX_LENGTH]]
+            batch_instance_y = self.char_to_num[char_line[slice_index + MAX_LENGTH]]
 
             for j, c in enumerate(sliced_char_line):
                 batch_instance_x[j] = char_to_bit(c)
