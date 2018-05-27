@@ -86,7 +86,7 @@ class LangModel(object):
     def train(self, train_id):
         train_writer = tf.summary.FileWriter('train_logs/{}'.format(train_id), self.sess.graph)
         self.sess.run(tf.global_variables_initializer())
-        batches = 80000
+        batches = 87000
         for ep in range(self.max_epoch):
             print("Epoch: {}".format(ep))
             for i, (bx, by) in enumerate(self.dr.get_data(num_batches=batches)):
