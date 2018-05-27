@@ -14,14 +14,14 @@ START_CHAR = '\u0002'
 V = 136755
 
 class LangModel(object):
-    def __init__(self, X_dim=32, h_dim=256, max_epoch=10, batch_size=32):
+    def __init__(self, X_dim=32, h_dim=256, max_epoch=10, batch_size=64, keep_param = 0.2):
         self.dr = DataReader('final_sentences.csv', batch_size=batch_size)
         self.max_epoch = max_epoch
         self.X_dim = X_dim
         self.h_dim = h_dim
         self.y_dim = len(self.dr.char_to_num) + 1
         self.batch_size = batch_size
-
+        self.keep_param = keep_param
         self.build_model()
         self.sess = tf.Session()
 
@@ -35,7 +35,7 @@ class LangModel(object):
             return tf.contrib.rnn.BasicLSTMCell(self.h_dim)
 
 
-    def fc_layer(self, inp, reuse=False):
+    def fc_layer(self, inp, keep_prob= 1.0, reuse=False):
 
         with tf.variable_scope('fc') as vs:
             if reuse:
@@ -45,14 +45,16 @@ class LangModel(object):
                                  initializer=tf.random_normal_initializer)
             bias = tf.get_variable(name='bias', shape=[self.y_dim], dtype=tf.float32,
                                    initializer=tf.constant_initializer(0.0))
+            drop_inp = tf.nn.dropout(inp, self.keep_prob)           
 
-            return tf.matmul(inp, Wt) + bias
+            return tf.matmul(drop_inp, Wt) + bias
 
 
     def build_model(self):
         # Nodes during Training :
         self.X_train = tf.placeholder(tf.float32, shape=[None, MAX_LENGTH, self.X_dim], name='input')
         self.Y_train = tf.placeholder(tf.float32, shape=[None, self.y_dim], name='labels')
+        self.keep_prob = tf.placeholder(tf.float32)
 
         self.lstm_cell = self.lstm_cell()
         outputs, _ = tf.nn.dynamic_rnn(
@@ -88,30 +90,30 @@ class LangModel(object):
         for ep in range(self.max_epoch):
             print("Epoch: {}".format(ep))
             for i, (bx, by) in enumerate(self.dr.get_data(num_batches=batches)):
-                summary, _ = self.sess.run([self.merged, self.optim], feed_dict={self.X_train : bx, self.Y_train : by})
+                summary, _ = self.sess.run([self.merged, self.optim], feed_dict={self.X_train : bx, self.Y_train : by, self.keep_prob : self.keep_param})
                 if (i + 1) % 1000 == 0:
                     train_writer.add_summary(summary, ep * batches + i)
                     print("Batch Number: {}".format(i + 1))
-            if (ep + 1) % 10 == 0 or (ep + 1) == self.max_epoch:
+            if (ep + 1) % 5 == 0 or (ep + 1) == self.max_epoch:
                 self.save(ep + 1, train_id)
 
     def save(self, ep, train_id):
         checkpoint_dir = 'checkpoint_dir/lstm_h' + str(self.h_dim) + '_b' + str(self.batch_size) + '_T' + str(
-            MAX_LENGTH) + "_" + train_id
+            MAX_LENGTH)+'_keep'+str(self.keep_param) + "_" + train_id
         if not os.path.exists(checkpoint_dir):
             os.makedirs(checkpoint_dir)
         self.saver.save(self.sess, os.path.join(checkpoint_dir, 'model'), global_step = ep)
         print('Saved model in Epoch {}'.format(ep))
 
     def load(self, ep, train_id):
-        checkpoint_dir = 'checkpoint_dir/lstm_h'+str(self.h_dim)+'_b'+str(self.batch_size)+'_T'+str(MAX_LENGTH) + "_" + train_id
+        checkpoint_dir = 'checkpoint_dir/lstm_h'+str(self.h_dim)+'_b'+str(self.batch_size)+'_T'+str(MAX_LENGTH) +'_keep'+str(self.keep_param) + "_" + train_id
         self.saver.restore(self.sess, os.path.join(checkpoint_dir, 'model-{}'.format(ep)))
         print('Restored model weights from Epoch {}'.format(ep))
 
     def infer(self):
         # for data in sys.stdin:
         while True:
-            user_input = 'ohoeololqpggggggggggg'
+            user_input = 'ohoeololqpggggggggggggggggggggggggggggggggggggggggggggggggggggggggg'
             user_input_chars = [c for c in user_input]
             i = 0
 
@@ -123,7 +125,7 @@ class LangModel(object):
             # get the initial predictions given the start of a sequence
             y_pred, next_c, next_h = self.sess.run([self.y_hat, self.infer_state, self.infer_output],
                                                    feed_dict={self.X_infer: char_bits, self.init_c: next_c,
-                                                              self.init_h: next_h})
+                                                              self.init_h: next_h, self.keep_prob : 1.0})
 
             char_indices = np.arange(len(self.dr.char_to_num) + 1)
             while i < len(user_input_chars):
@@ -141,7 +143,7 @@ class LangModel(object):
                         y_pred_new, next_c, next_h = self.sess.run([self.y_hat, self.infer_state, self.infer_output],
                                                                    feed_dict={self.X_infer: char_bits,
                                                                               self.init_c: next_c,
-                                                                              self.init_h: next_h})
+                                                                              self.init_h: next_h, self.keep_prob : 1.0})
                         y_pred = y_pred_new
                         i += 2
                         continue
@@ -155,7 +157,7 @@ class LangModel(object):
                     # get the new predictions given the current observation
                     y_pred_new, next_c, next_h = self.sess.run([self.y_hat, self.infer_state, self.infer_output],
                                                    feed_dict={self.X_infer: char_bits, self.init_c: next_c,
-                                                              self.init_h: next_h})
+                                                              self.init_h: next_h, self.keep_prob : 1.0})
                     y_pred = y_pred_new
                     i += 1
                 elif user_input_chars[i] == 'q':
@@ -191,7 +193,7 @@ class LangModel(object):
                     # record generated char in history by getting new next_c and next_h
                     y_pred_new, next_c, next_h = self.sess.run([self.y_hat, self.infer_state, self.infer_output],
                                                                feed_dict={self.X_infer: char_bits, self.init_c: next_c,
-                                                                          self.init_h: next_h})
+                                                                          self.init_h: next_h, self.keep_prob : 1.0})
                     y_pred = y_pred_new
                     print(u""+gen_char)
                 elif user_input_chars[i] == 'x':
@@ -200,8 +202,8 @@ class LangModel(object):
             break
 
 if __name__=='__main__':
-    lm = LangModel(X_dim=32, h_dim=256, max_epoch=20, batch_size=128)
+    lm = LangModel(X_dim=32, h_dim=256, max_epoch=10, batch_size=64, keep_param = 0.2)
     run_id = str(input("enter a run id: "))
     lm.train(run_id)
-    # lm.load(10, run_id)
-    # lm.infer()
+    #lm.load(10, run_id)
+    #lm.infer()
