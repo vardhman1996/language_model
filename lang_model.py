@@ -1,4 +1,4 @@
-mport tensorflow as tf
+import tensorflow as tf
 import data_reader
 from data_reader import DataReader
 import numpy as np
@@ -113,7 +113,7 @@ class LangModel(object):
     def infer(self):
         # for data in sys.stdin:
         while True:
-            user_input = 'ohoeololqpggggggggggggggggggggggggggggggggggggggggggggggggggggggggg'
+            user_input = 'ohoeololqpggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg'
             user_input_chars = [c for c in user_input]
             i = 0
 
@@ -202,7 +202,7 @@ class LangModel(object):
             break
 
 if __name__=='__main__':
-    lm = LangModel(X_dim=32, h_dim=256, max_epoch=10, batch_size=64, keep_param = 0.2)
+    lm = LangModel(X_dim=32, h_dim=256, max_epoch=10, batch_size=512, keep_param = 0.5)
     run_id = str(input("enter a run id: "))
     lm.train(run_id)
     #lm.load(10, run_id)
