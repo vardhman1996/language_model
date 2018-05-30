@@ -202,7 +202,7 @@ class LangModel(object):
             break
 
 if __name__=='__main__':
-    lm = LangModel(X_dim=32, h_dim=256, max_epoch=10, batch_size=512, keep_param = 0.5)
+    lm = LangModel(X_dim=32, h_dim=256, max_epoch=10, batch_size=512, keep_param = 0.7)
     run_id = str(input("enter a run id: "))
     lm.train(run_id)
     #lm.load(10, run_id)
