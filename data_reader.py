@@ -67,8 +67,7 @@ class DataReader:
             char_line = [START_CHAR] + char_line + [STOP_CHAR]
             batch_instance_x = np.zeros((MAX_LENGTH, 32))
 
-            #slice_index = np.random.randint(0, RANDOM_WINDOW)
-            slice_index = np.random.choice(RANDOM_WINDOW, p = prob_window) 
+            slice_index = np.random.choice(RANDOM_WINDOW, p = prob_window)
             sliced_char_line = char_line[slice_index:slice_index + MAX_LENGTH]
 
             batch_instance_y = self.char_to_num[char_line[slice_index + MAX_LENGTH]]

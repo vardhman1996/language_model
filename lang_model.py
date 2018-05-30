@@ -6,6 +6,7 @@ import sys
 import math
 import os
 import time
+import argparse
 
 MAX_LENGTH = 25
 NUM_SENTENCES = 14532
@@ -13,19 +14,24 @@ UNK_CHAR = '\u0001'
 STOP_CHAR = '\u0003'
 START_CHAR = '\u0002'
 V = 136755
+# tf.logging.set_verbosity(tf.logging.ERROR)
+# os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+# os.environ['PYTHONWARNINGS'] = 'ignore'
 
 
 class LangModel(object):
-    def __init__(self, X_dim=32, h_dim=256, max_epoch=10, batch_size=32):
+    def __init__(self, X_dim=32, h_dim=256, max_epoch=10, batch_size=32, keep_param=0.2):
         self.dr = DataReader('final_sentences.csv', batch_size=batch_size)
         self.max_epoch = max_epoch
         self.X_dim = X_dim
         self.h_dim = h_dim
         self.y_dim = len(self.dr.char_to_num) + 1
         self.batch_size = batch_size
-
+        self.keep_param = keep_param
         self.build_model()
         self.sess = tf.Session()
+        # tf.device('/cpu:0')
+        self.madedir = False
 
 
     def lstm_cell(self, reuse=False):
@@ -47,14 +53,16 @@ class LangModel(object):
                                  initializer=tf.random_normal_initializer)
             bias = tf.get_variable(name='bias', shape=[self.y_dim], dtype=tf.float32,
                                    initializer=tf.constant_initializer(0.0))
+            drop_inp = tf.nn.dropout(inp, self.keep_prob)
 
-            return tf.matmul(inp, Wt) + bias
+            return tf.matmul(drop_inp, Wt) + bias
 
 
     def build_model(self):
         # Nodes during Training :
         self.X_train = tf.placeholder(tf.float32, shape=[None, MAX_LENGTH, self.X_dim], name='input')
         self.Y_train = tf.placeholder(tf.float32, shape=[None, self.y_dim], name='labels')
+        self.keep_prob = tf.placeholder(tf.float32)
 
         self.lstm_cell = self.lstm_cell()
         outputs, _ = tf.nn.dynamic_rnn(
@@ -86,126 +94,152 @@ class LangModel(object):
     def train(self, train_id):
         train_writer = tf.summary.FileWriter('train_logs/{}'.format(train_id), self.sess.graph)
         self.sess.run(tf.global_variables_initializer())
-        batches = 80000
+        batches = int(11215046 / self.batch_size)
         for ep in range(self.max_epoch):
             print("Epoch: {}".format(ep))
             for i, (bx, by) in enumerate(self.dr.get_data(num_batches=batches)):
-                summary, _ = self.sess.run([self.merged, self.optim], feed_dict={self.X_train : bx, self.Y_train : by})
+                summary, _ = self.sess.run([self.merged, self.optim], feed_dict={self.X_train : bx, self.Y_train : by, self.keep_prob : self.keep_param})
                 if (i + 1) % 1000 == 0:
                     train_writer.add_summary(summary, ep * batches + i)
                     print("Batch Number: {}".format(i + 1))
-            if (ep + 1) % 10 == 0 or (ep + 1) == self.max_epoch:
+            if (ep + 1) % 2 == 0 or (ep + 1) == self.max_epoch:
                 self.save(ep + 1, train_id)
 
     def save(self, ep, train_id):
         checkpoint_dir = 'checkpoint_dir/lstm_h' + str(self.h_dim) + '_b' + str(self.batch_size) + '_T' + str(
-            MAX_LENGTH) + "_" + train_id
-        if not os.path.exists(checkpoint_dir):
+            MAX_LENGTH) +'_keep'+str(self.keep_param) + "_" + train_id
+        if not self.madedir:
             os.makedirs(checkpoint_dir)
+            self.madedir = True
+
         self.saver.save(self.sess, os.path.join(checkpoint_dir, 'model'), global_step = ep)
         print('Saved model in Epoch {}'.format(ep))
 
     def load(self, ep, train_id):
-        checkpoint_dir = 'checkpoint_dir/lstm_h'+str(self.h_dim)+'_b'+str(self.batch_size)+'_T'+str(MAX_LENGTH) + "_" + train_id
+        checkpoint_dir = 'checkpoint_dir/lstm_h'+str(self.h_dim)+'_b'+str(self.batch_size)+'_T'+str(MAX_LENGTH) +'_keep'+str(self.keep_param) + "_" + train_id
         self.saver.restore(self.sess, os.path.join(checkpoint_dir, 'model-{}'.format(ep)))
-        print('Restored model weights from Epoch {}'.format(ep))
+        # print('Restored model weights from Epoch {}'.format(ep))
 
     def infer(self):
-        # for data in sys.stdin:
-        while True:
-            user_input = 'ohoeololqpggggggggggg'
-            user_input_chars = [c for c in user_input]
-            i = 0
 
-            next_c, next_h = np.zeros((1, self.h_dim)), np.zeros((1, self.h_dim))
-            first_char = START_CHAR # first is always start
-            char_bits = np.array(data_reader.char_to_bit(first_char))
-            char_bits = char_bits.reshape((1, 1, 32))
+        next_c, next_h = np.zeros((1, self.h_dim)), np.zeros((1, self.h_dim))
+        first_char = START_CHAR  # first is always start
+        char_bits = np.array(data_reader.char_to_bit(first_char))
+        char_bits = char_bits.reshape((1, 1, 32))
 
-            # get the initial predictions given the start of a sequence
-            y_pred, next_c, next_h = self.sess.run([self.y_hat, self.infer_state, self.infer_output],
-                                                   feed_dict={self.X_infer: char_bits, self.init_c: next_c,
-                                                              self.init_h: next_h})
+        # get the initial predictions given the start of a sequence
+        y_pred, next_c, next_h = self.sess.run([self.y_hat, self.infer_state, self.infer_output],
+                                               feed_dict={self.X_infer: char_bits, self.init_c: next_c,
+                                                          self.init_h: next_h, self.keep_prob : 1.0})
 
-            char_indices = np.arange(len(self.dr.char_to_num) + 1)
-            while i < len(user_input_chars):
-                if user_input_chars[i] == 'o': # observation
-                    next_char = user_input_chars[i + 1]
+        y_pred = self.lmda_smoothing(y_pred)
 
-                    if next_char == STOP_CHAR:
-                        # reset next_c and next_h if STOP is observed
-                        next_c, next_h = np.zeros((1, self.h_dim)), np.zeros((1, self.h_dim))
-                        y_prob = y_pred[self.dr.get_char_to_num(next_char)]
-                        print(u"// added a character to the history! Probability = {0}".format(math.log(y_prob, 2)))
-                        next_char = START_CHAR # since hitory was cleared.
-                        char_bits = np.array(data_reader.char_to_bit(next_char))
-                        char_bits = char_bits.reshape((1, 1, 32))
-                        y_pred_new, next_c, next_h = self.sess.run([self.y_hat, self.infer_state, self.infer_output],
-                                                                   feed_dict={self.X_infer: char_bits,
-                                                                              self.init_c: next_c,
-                                                                              self.init_h: next_h})
-                        y_pred = y_pred_new
-                        i += 2
-                        continue
+        char_indices = np.arange(len(self.dr.char_to_num) + 1)
 
-                    char_bits = np.array(data_reader.char_to_bit(next_char))
-                    char_bits = char_bits.reshape((1,1,32))
+        input = sys.stdin.read()
 
-                    # this character's prob is found from previous time step's probability distribution
-                    y_prob = y_pred.flatten()[self.dr.get_char_to_num(next_char)]
-                    print("// added a character to the history! Probability = {0}".format(math.log(y_prob, 2)))
-                    # get the new predictions given the current observation
-                    y_pred_new, next_c, next_h = self.sess.run([self.y_hat, self.infer_state, self.infer_output],
-                                                   feed_dict={self.X_infer: char_bits, self.init_c: next_c,
-                                                              self.init_h: next_h})
-                    y_pred = y_pred_new
-                    i += 1
-                elif user_input_chars[i] == 'q':
-                    next_char = user_input_chars[i + 1]
-                    # use the current probability distribution to get the query prob
-                    if next_char not in self.dr.char_to_num:
-                        unk_prob = y_pred.flatten()[len(self.dr.char_to_num)]
-                        y_prob = unk_prob / (V - len(self.dr.char_to_num))
-                        print(math.log(y_prob, 2))
-                        i += 2
-                        continue
+            # user_input = data
+        user_input_chars = list(input)
+        i = 0
 
-                    y_prob = y_pred.flatten()[self.dr.get_char_to_num(next_char)]
-                    print(math.log(y_prob, 2))
-                    i += 1
-                elif user_input_chars[i] == 'g':
-                    # use the current probability distribution to generate a char
-                    char_index = np.random.choice(char_indices, 1, p=y_pred.flatten())
-                    while char_index == len(self.dr.char_to_num):
-                        char_index = np.random.choice(char_indices, 1, p=y_pred.flatten())
+        while i < len(user_input_chars):
 
-                    gen_char = self.dr.get_num_to_char(char_index[0])
 
-                    # clear history if generates a stop char.
-                    if gen_char == STOP_CHAR:
-                        next_c, next_h = np.zeros((1, self.h_dim)), np.zeros((1, self.h_dim))
+            if user_input_chars[i] == 'o':  # observation
+                next_char = user_input_chars[i + 1]
 
-                    # if generated STOP then next_char is START
-                    next_char = gen_char if gen_char != STOP_CHAR else START_CHAR
+                if next_char == STOP_CHAR:
+                    # reset next_c and next_h if STOP is observed
+                    next_c, next_h = np.zeros((1, self.h_dim)), np.zeros((1, self.h_dim))
+                    y_prob = y_pred[self.dr.get_char_to_num(next_char)]
+                    print(u"// cleared history! Probability = {0}".format(math.log(y_prob, 2)))
+                    next_char = START_CHAR # since history was cleared.
                     char_bits = np.array(data_reader.char_to_bit(next_char))
                     char_bits = char_bits.reshape((1, 1, 32))
-
-                    # record generated char in history by getting new next_c and next_h
                     y_pred_new, next_c, next_h = self.sess.run([self.y_hat, self.infer_state, self.infer_output],
-                                                               feed_dict={self.X_infer: char_bits, self.init_c: next_c,
-                                                                          self.init_h: next_h})
-                    y_pred = y_pred_new
-                    print(u""+gen_char)
-                elif user_input_chars[i] == 'x':
-                    exit(0)
-                i+=1
-            break
+                                                               feed_dict={self.X_infer: char_bits,
+                                                                          self.init_c: next_c,
+                                                                          self.init_h: next_h, self.keep_prob : 1.0})
+                    y_pred = self.lmda_smoothing(y_pred_new)
+                    i += 2
+                    continue
+
+                char_bits = np.array(data_reader.char_to_bit(next_char))
+                char_bits = char_bits.reshape((1,1,32))
+
+                # this character's prob is found from previous time step's probability distribution
+                if next_char not in self.dr.char_to_num:
+                    unk_prob = y_pred[len(self.dr.char_to_num)]
+                    y_prob = unk_prob / (V - len(self.dr.char_to_num))
+                else:
+                    y_prob = y_pred[self.dr.get_char_to_num(next_char)]
+
+                print("// added a character to the history! Probability = {0}".format(math.log(y_prob, 2)))
+                # get the new predictions given the current observation
+                y_pred_new, next_c, next_h = self.sess.run([self.y_hat, self.infer_state, self.infer_output],
+                                               feed_dict={self.X_infer: char_bits, self.init_c: next_c,
+                                                          self.init_h: next_h,self.keep_prob : 1.0})
+                y_pred = self.lmda_smoothing(y_pred_new)
+                i += 1
+            elif user_input_chars[i] == 'q':
+                next_char = user_input_chars[i + 1]
+                # use the current probability distribution to get the query prob
+                if next_char not in self.dr.char_to_num:
+                    unk_prob = y_pred[len(self.dr.char_to_num)]
+                    y_prob = unk_prob / (V - len(self.dr.char_to_num))
+                    print(math.log(y_prob, 2))
+                    i += 2
+                    continue
+
+                y_prob = y_pred[self.dr.get_char_to_num(next_char)]
+                print(math.log(y_prob, 2))
+                i += 1
+            elif user_input_chars[i] == 'g':
+                # use the current probability distribution to generate a char
+                char_index = np.random.choice(char_indices, 1, p=y_pred.flatten())
+                while char_index == len(self.dr.char_to_num):
+                    char_index = np.random.choice(char_indices, 1, p=y_pred.flatten())
+
+                gen_char = self.dr.get_num_to_char(char_index[0])
+
+                # clear history if generates a stop char.
+                if gen_char == STOP_CHAR:
+                    next_c, next_h = np.zeros((1, self.h_dim)), np.zeros((1, self.h_dim))
+
+                # if generated STOP then next_char is START
+                next_char = gen_char if gen_char != STOP_CHAR else START_CHAR
+                char_bits = np.array(data_reader.char_to_bit(next_char))
+                char_bits = char_bits.reshape((1, 1, 32))
+
+                # record generated char in history by getting new next_c and next_h
+                y_pred_new, next_c, next_h = self.sess.run([self.y_hat, self.infer_state, self.infer_output],
+                                                           feed_dict={self.X_infer: char_bits, self.init_c: next_c,
+                                                                      self.init_h: next_h, self.keep_prob : 1.0})
+                y_pred = self.lmda_smoothing(y_pred_new)
+                print(u""+gen_char)
+            elif user_input_chars[i] == 'x':
+                exit(0)
+            i+=1
+
+    def lmda_smoothing(self, prob):
+        lmda = 1e-06
+        prob = prob.flatten()
+        prob = prob + lmda
+        prob[len(lm.dr.char_to_num)] += lmda * (V - len(lm.dr.char_to_num) - 1)
+        prob /= np.sum(prob)
+        return prob
 
 if __name__=='__main__':
     start = time.time()
-    lm = LangModel(X_dim=32, h_dim=256, max_epoch=20, batch_size=128)
+    lm = LangModel(X_dim=32, h_dim=256, max_epoch=10, batch_size=128, keep_param=0.7)
     run_id = str(input("enter a run id: "))
     lm.train(run_id)
     print("Model training took: ", time.time() - start)
-    # lm.load(10, run_id)
+    # lm.load(5, run_id)
+    # parser = argparse.ArgumentParser(description='Language model')
+    # parser.add_argument('-s', '--seed', type=int, default=1)
+    # args = parser.parse_args()
+    # seed = args.seed
+    # np.random.seed(seed)
+    # tf.set_random_seed(seed)
     # lm.infer()
