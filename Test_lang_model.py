@@ -65,11 +65,11 @@ def compute_perplexity(test_str, lm, smooth=False):
 
 
 if __name__=='__main__':
-    lm = LangModel(X_dim=32, h_dim=256, max_epoch=10, batch_size=128,  keep_param = 0.5)
+    lm = LangModel(X_dim=32, h_dim=256, max_epoch=10, batch_size=256,  keep_param = 0.5)
     run_id = str(input("enter a run id: "))
     lm.load(10, run_id)
 
-    with open('tests/test5.txt', 'r') as f:
+    with open('tests/test2.txt', 'r') as f:
         test_str = f.readline().rstrip()
 
     compute_perplexity(test_str, lm,smooth=True)
