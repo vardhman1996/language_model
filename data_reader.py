@@ -16,6 +16,9 @@ NUM_TO_CHAR_DICT = 'num_to_char.pkl'
 MAX_LENGTH = 25
 RANDOM_WINDOW = 15
 
+prob_window = [0.0708]*14
+prob_window.append(1-0.0708*14)
+
 
 def char_to_bit(c):
     unpadded_bits = [int(i) for i in format(ord(c), 'b')]
@@ -31,6 +34,9 @@ class DataReader:
         self.num_to_char = pkl.load(open(os.path.join(DATA_FOLDER, NUM_TO_CHAR_DICT), 'rb'))
 
     def get_char_to_num(self, char):
+        if char not in self.char_to_num:
+            return len(self.char_to_num)
+
         return self.char_to_num[char]
 
     def get_num_to_char(self, num):
@@ -47,6 +53,8 @@ class DataReader:
             line = line.replace('""', '"')
 
             data = [c for c in line]
+            if len(data) < MAX_TIME_STEPS:
+                continue
             data_list += [data]
             num_point += 1
             if num_point % self.batch_size == 0:
@@ -59,16 +67,11 @@ class DataReader:
             char_line = [START_CHAR] + char_line + [STOP_CHAR]
             batch_instance_x = np.zeros((MAX_LENGTH, 32))
 
-            slice_index = np.random.randint(0, RANDOM_WINDOW)
-            sliced_char_line = char_line[slice_index:slice_index+MAX_LENGTH]
+            #slice_index = np.random.randint(0, RANDOM_WINDOW)
+            slice_index = np.random.choice(RANDOM_WINDOW, p = prob_window) 
+            sliced_char_line = char_line[slice_index:slice_index + MAX_LENGTH]
 
-            if len(sliced_char_line) < MAX_LENGTH:
-                batch_instance_y = self.char_to_num[STOP_CHAR]
-            else:
-                if len(char_line) <= slice_index + MAX_LENGTH:
-                    batch_instance_y = self.char_to_num[STOP_CHAR]
-                else:
-                    batch_instance_y = self.char_to_num[char_line[slice_index + MAX_LENGTH]]
+            batch_instance_y = self.char_to_num[char_line[slice_index + MAX_LENGTH]]
 
             for j, c in enumerate(sliced_char_line):
                 batch_instance_x[j] = char_to_bit(c)
