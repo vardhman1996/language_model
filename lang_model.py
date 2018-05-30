@@ -14,9 +14,9 @@ UNK_CHAR = '\u0001'
 STOP_CHAR = '\u0003'
 START_CHAR = '\u0002'
 V = 136755
-tf.logging.set_verbosity(tf.logging.ERROR)
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-os.environ['PYTHONWARNINGS'] = 'ignore'
+# tf.logging.set_verbosity(tf.logging.ERROR)
+# os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+# os.environ['PYTHONWARNINGS'] = 'ignore'
 
 
 class LangModel(object):
@@ -30,7 +30,7 @@ class LangModel(object):
         self.keep_param = keep_param
         self.build_model()
         self.sess = tf.Session()
-        tf.device('/cpu:0')
+        # tf.device('/cpu:0')
         self.madedir = False
 
 
@@ -94,7 +94,7 @@ class LangModel(object):
     def train(self, train_id):
         train_writer = tf.summary.FileWriter('train_logs/{}'.format(train_id), self.sess.graph)
         self.sess.run(tf.global_variables_initializer())
-        batches = 87000
+        batches = int(11215046 / self.batch_size)
         for ep in range(self.max_epoch):
             print("Epoch: {}".format(ep))
             for i, (bx, by) in enumerate(self.dr.get_data(num_batches=batches)):
@@ -231,7 +231,7 @@ class LangModel(object):
 
 if __name__=='__main__':
     start = time.time()
-    lm = LangModel(X_dim=32, h_dim=256, max_epoch=10, batch_size=512, keep_param=0.7)
+    lm = LangModel(X_dim=32, h_dim=256, max_epoch=10, batch_size=128, keep_param=0.7)
     run_id = str(input("enter a run id: "))
     lm.train(run_id)
     print("Model training took: ", time.time() - start)
