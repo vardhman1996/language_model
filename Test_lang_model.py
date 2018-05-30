@@ -2,14 +2,14 @@ from lang_model import *
 
 def lmda_smoothing(prob):
 
-    lmda = 1e-08
+    lmda = 1e-06
     prob = prob + lmda
     prob[len(lm.dr.char_to_num)] += lmda * (V - len(lm.dr.char_to_num) -1)
     prob /= np.sum(prob)
     return prob
 
 
-def compute_perplexity(test_str, lm, smooth=False):
+def compute_perplexity(test_str, lm, smooth=True):
     user_input_chars = [c for c in test_str]
 
     next_c, next_h = np.zeros((1, lm.h_dim)), np.zeros((1, lm.h_dim))
@@ -67,9 +67,9 @@ def compute_perplexity(test_str, lm, smooth=False):
 if __name__=='__main__':
     lm = LangModel(X_dim=32, h_dim=256, max_epoch=20, batch_size=128)
     run_id = str(input("enter a run id: "))
-    lm.load(10, run_id)
+    lm.load(6, run_id)
 
-    with open('tests/test1.txt', 'r') as f:
+    with open('tests/test5.txt', 'r') as f:
         test_str = f.readline().rstrip()
 
     compute_perplexity(test_str, lm)

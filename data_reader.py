@@ -31,6 +31,9 @@ class DataReader:
         self.num_to_char = pkl.load(open(os.path.join(DATA_FOLDER, NUM_TO_CHAR_DICT), 'rb'))
 
     def get_char_to_num(self, char):
+        if char not in self.char_to_num:
+            return len(self.char_to_num)
+
         return self.char_to_num[char]
 
     def get_num_to_char(self, num):
