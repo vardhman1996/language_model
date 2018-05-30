@@ -16,6 +16,9 @@ NUM_TO_CHAR_DICT = 'num_to_char.pkl'
 MAX_LENGTH = 25
 RANDOM_WINDOW = 15
 
+prob_window = [0.0708]*14
+prob_window.append(1-0.0708*14)
+
 
 def char_to_bit(c):
     unpadded_bits = [int(i) for i in format(ord(c), 'b')]
@@ -64,7 +67,8 @@ class DataReader:
             char_line = [START_CHAR] + char_line + [STOP_CHAR]
             batch_instance_x = np.zeros((MAX_LENGTH, 32))
 
-            slice_index = np.random.randint(0, RANDOM_WINDOW)
+            #slice_index = np.random.randint(0, RANDOM_WINDOW)
+            slice_index = np.random.choice(RANDOM_WINDOW, p = prob_window) 
             sliced_char_line = char_line[slice_index:slice_index + MAX_LENGTH]
 
             batch_instance_y = self.char_to_num[char_line[slice_index + MAX_LENGTH]]
