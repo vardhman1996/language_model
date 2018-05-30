@@ -6,6 +6,7 @@ import sys
 import math
 import os
 import time
+import argparse
 
 MAX_LENGTH = 25
 NUM_SENTENCES = 14532
@@ -19,16 +20,17 @@ os.environ['PYTHONWARNINGS'] = 'ignore'
 
 
 class LangModel(object):
-    def __init__(self, X_dim=32, h_dim=256, max_epoch=10, batch_size=32):
+    def __init__(self, X_dim=32, h_dim=256, max_epoch=10, batch_size=32, keep_param=0.2):
         self.dr = DataReader('final_sentences.csv', batch_size=batch_size)
         self.max_epoch = max_epoch
         self.X_dim = X_dim
         self.h_dim = h_dim
         self.y_dim = len(self.dr.char_to_num) + 1
         self.batch_size = batch_size
-
+        self.keep_param = keep_param
         self.build_model()
         self.sess = tf.Session()
+        tf.device('/cpu:0')
         self.madedir = False
 
 
@@ -51,14 +53,16 @@ class LangModel(object):
                                  initializer=tf.random_normal_initializer)
             bias = tf.get_variable(name='bias', shape=[self.y_dim], dtype=tf.float32,
                                    initializer=tf.constant_initializer(0.0))
+            drop_inp = tf.nn.dropout(inp, self.keep_prob)
 
-            return tf.matmul(inp, Wt) + bias
+            return tf.matmul(drop_inp, Wt) + bias
 
 
     def build_model(self):
         # Nodes during Training :
         self.X_train = tf.placeholder(tf.float32, shape=[None, MAX_LENGTH, self.X_dim], name='input')
         self.Y_train = tf.placeholder(tf.float32, shape=[None, self.y_dim], name='labels')
+        self.keep_prob = tf.placeholder(tf.float32)
 
         self.lstm_cell = self.lstm_cell()
         outputs, _ = tf.nn.dynamic_rnn(
@@ -94,7 +98,7 @@ class LangModel(object):
         for ep in range(self.max_epoch):
             print("Epoch: {}".format(ep))
             for i, (bx, by) in enumerate(self.dr.get_data(num_batches=batches)):
-                summary, _ = self.sess.run([self.merged, self.optim], feed_dict={self.X_train : bx, self.Y_train : by})
+                summary, _ = self.sess.run([self.merged, self.optim], feed_dict={self.X_train : bx, self.Y_train : by, self.keep_prob : self.keep_param})
                 if (i + 1) % 1000 == 0:
                     train_writer.add_summary(summary, ep * batches + i)
                     print("Batch Number: {}".format(i + 1))
@@ -103,7 +107,7 @@ class LangModel(object):
 
     def save(self, ep, train_id):
         checkpoint_dir = 'checkpoint_dir/lstm_h' + str(self.h_dim) + '_b' + str(self.batch_size) + '_T' + str(
-            MAX_LENGTH) + "_" + train_id
+            MAX_LENGTH) +'_keep'+str(self.keep_param) + "_" + train_id
         if not self.madedir:
             os.makedirs(checkpoint_dir)
             self.madedir = True
@@ -112,7 +116,7 @@ class LangModel(object):
         print('Saved model in Epoch {}'.format(ep))
 
     def load(self, ep, train_id):
-        checkpoint_dir = 'checkpoint_dir/lstm_h'+str(self.h_dim)+'_b'+str(self.batch_size)+'_T'+str(MAX_LENGTH) + "_" + train_id
+        checkpoint_dir = 'checkpoint_dir/lstm_h'+str(self.h_dim)+'_b'+str(self.batch_size)+'_T'+str(MAX_LENGTH) +'_keep'+str(self.keep_param) + "_" + train_id
         self.saver.restore(self.sess, os.path.join(checkpoint_dir, 'model-{}'.format(ep)))
         # print('Restored model weights from Epoch {}'.format(ep))
 
@@ -126,7 +130,7 @@ class LangModel(object):
         # get the initial predictions given the start of a sequence
         y_pred, next_c, next_h = self.sess.run([self.y_hat, self.infer_state, self.infer_output],
                                                feed_dict={self.X_infer: char_bits, self.init_c: next_c,
-                                                          self.init_h: next_h})
+                                                          self.init_h: next_h, self.keep_prob : 1.0})
 
         y_pred = self.lmda_smoothing(y_pred)
 
@@ -155,7 +159,7 @@ class LangModel(object):
                     y_pred_new, next_c, next_h = self.sess.run([self.y_hat, self.infer_state, self.infer_output],
                                                                feed_dict={self.X_infer: char_bits,
                                                                           self.init_c: next_c,
-                                                                          self.init_h: next_h})
+                                                                          self.init_h: next_h, self.keep_prob : 1.0})
                     y_pred = self.lmda_smoothing(y_pred_new)
                     i += 2
                     continue
@@ -174,7 +178,7 @@ class LangModel(object):
                 # get the new predictions given the current observation
                 y_pred_new, next_c, next_h = self.sess.run([self.y_hat, self.infer_state, self.infer_output],
                                                feed_dict={self.X_infer: char_bits, self.init_c: next_c,
-                                                          self.init_h: next_h})
+                                                          self.init_h: next_h,self.keep_prob : 1.0})
                 y_pred = self.lmda_smoothing(y_pred_new)
                 i += 1
             elif user_input_chars[i] == 'q':
@@ -210,7 +214,7 @@ class LangModel(object):
                 # record generated char in history by getting new next_c and next_h
                 y_pred_new, next_c, next_h = self.sess.run([self.y_hat, self.infer_state, self.infer_output],
                                                            feed_dict={self.X_infer: char_bits, self.init_c: next_c,
-                                                                      self.init_h: next_h})
+                                                                      self.init_h: next_h, self.keep_prob : 1.0})
                 y_pred = self.lmda_smoothing(y_pred_new)
                 print(u""+gen_char)
             elif user_input_chars[i] == 'x':
@@ -218,7 +222,7 @@ class LangModel(object):
             i+=1
 
     def lmda_smoothing(self, prob):
-        lmda = 1e-08
+        lmda = 1e-06
         prob = prob.flatten()
         prob = prob + lmda
         prob[len(lm.dr.char_to_num)] += lmda * (V - len(lm.dr.char_to_num) - 1)
@@ -227,9 +231,15 @@ class LangModel(object):
 
 if __name__=='__main__':
     start = time.time()
-    lm = LangModel(X_dim=32, h_dim=256, max_epoch=20, batch_size=128)
-    run_id = 'trial_3_ep_20' #str(input("enter a run id: "))
-    # lm.train(run_id)
-    # print("Model training took: ", time.time() - start)
-    lm.load(4, run_id)
-    lm.infer()
+    lm = LangModel(X_dim=32, h_dim=256, max_epoch=10, batch_size=512, keep_param=0.7)
+    run_id = str(input("enter a run id: "))
+    lm.train(run_id)
+    print("Model training took: ", time.time() - start)
+    # lm.load(5, run_id)
+    # parser = argparse.ArgumentParser(description='Language model')
+    # parser.add_argument('-s', '--seed', type=int, default=1)
+    # args = parser.parse_args()
+    # seed = args.seed
+    # np.random.seed(seed)
+    # tf.set_random_seed(seed)
+    # lm.infer()
