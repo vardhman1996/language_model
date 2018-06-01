@@ -56,7 +56,7 @@ def cut_off_sentence(sentence):
         sentence_chunks = [sentence[i:i + MAX_LENGTH] for i in range(0, len(sentence), MAX_LENGTH)]
         ret_sentences = []
         for sent in sentence_chunks:
-            if len(sentence) < SENTENCE_LENGTH_THRESH:
+            if len(sent) < SENTENCE_LENGTH_THRESH:
                 continue
             ret_sentences += cut_off_sentence(sent)
         return ret_sentences
@@ -106,9 +106,8 @@ def save_data(final_list, mode):
 
 def main():
     # read_data_taboeta(DATA)
-    # read_data_wili(DATA_TRAIN)
-    # read_data_wili(DATA_TEST)
-
+    read_data_wili(DATA_TRAIN)
+    read_data_wili(DATA_TEST)
     randomize_data(OUTPUT)
 
 

@@ -94,7 +94,7 @@ class LangModel(object):
     def train(self, train_id):
         train_writer = tf.summary.FileWriter('train_logs/{}'.format(train_id), self.sess.graph)
         self.sess.run(tf.global_variables_initializer())
-        batches = int(11215046 / self.batch_size)
+        batches = int(2349391 / self.batch_size)
         for ep in range(self.max_epoch):
             print("Epoch: {}".format(ep))
             for i, (bx, by) in enumerate(self.dr.get_data(num_batches=batches)):
@@ -102,7 +102,7 @@ class LangModel(object):
                 if (i + 1) % 1000 == 0:
                     train_writer.add_summary(summary, ep * batches + i)
                     print("Batch Number: {}".format(i + 1))
-            if (ep + 1) % 2 == 0 or (ep + 1) == self.max_epoch:
+            if (ep + 1) % 5 == 0 or (ep + 1) == self.max_epoch:
                 self.save(ep + 1, train_id)
 
     def save(self, ep, train_id):
@@ -231,7 +231,7 @@ class LangModel(object):
 
 if __name__=='__main__':
     start = time.time()
-    lm = LangModel(X_dim=32, h_dim=256, max_epoch=10, batch_size=128, keep_param=0.7)
+    lm = LangModel(X_dim=32, h_dim=256, max_epoch=20, batch_size=128, keep_param=0.9)
     run_id = str(input("enter a run id: "))
     lm.train(run_id)
     print("Model training took: ", time.time() - start)
