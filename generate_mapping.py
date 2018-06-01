@@ -79,7 +79,7 @@ def save_map(map, filepath):
 
 def main():
     universal_char_set = set()
-    universal_char_set = universal_char_set | read_data_taboeta(DATA)
+    # universal_char_set = universal_char_set | read_data_taboeta(DATA)
     universal_char_set = universal_char_set | read_data_wili(DATA_TRAIN)
     universal_char_set = universal_char_set | read_data_wili(DATA_TEST)
 
