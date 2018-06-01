@@ -231,15 +231,15 @@ class LangModel(object):
 
 if __name__=='__main__':
     start = time.time()
-    lm = LangModel(X_dim=32, h_dim=256, max_epoch=20, batch_size=128, keep_param=0.8)
+    lm = LangModel(X_dim=32, h_dim=256, max_epoch=20, batch_size=256, keep_param=0.8)
     run_id = str(input("enter a run id: "))
-    lm.train(run_id)
-    print("Model training took: ", time.time() - start)
-    # lm.load(5, run_id)
-    # parser = argparse.ArgumentParser(description='Language model')
-    # parser.add_argument('-s', '--seed', type=int, default=1)
-    # args = parser.parse_args()
+    #lm.train(run_id)
+    #print("Model training took: ", time.time() - start)
+    lm.load(15, run_id)
+    #parser = argparse.ArgumentParser(description='Language model')
+    #parser.add_argument('-s', '--seed', type=int, default=1)
+    #args = parser.parse_args()
     # seed = args.seed
     # np.random.seed(seed)
     # tf.set_random_seed(seed)
-    # lm.infer()
+    lm.infer()
